@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAllProducts, deleteProduct, createProduct, updateProduct } from "@/mock/api";
+import { useGetAllProducts } from "@/hooks/useGetAllProducts";
+import { useGetProductById } from "@/hooks/useGetProductById";
+import { useCreateProduct } from "@/hooks/useCreateProduct";
+import { useUpdateProduct } from "@/hooks/useUpdateProduct";
+import { useDeleteProduct } from "@/hooks/useDeleteProduct";
 import { useAuth } from "@/context/AuthContext";
 import { Product } from "@/types";
 import { toast } from "@/hooks/use-toast";
@@ -17,30 +21,26 @@ const emptyForm = { name: "", description: "", price: "", category: "" };
 
 const Products = () => {
   const { isAdmin, user } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]);
+  
+  // Custom Hooks ka use
+  const { data, loading, refresh } = useGetAllProducts();
+  const { createProduct, loading: creating } = useCreateProduct();
+  const { updateProduct, loading: updating } = useUpdateProduct();
+  const { deleteProduct, loading: deleting } = useDeleteProduct();
+
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    const res = await getAllProducts();
-    if (res.products) setProducts(res.products);
-    if (res.cached) console.log("[Redis Cache] Products served from cache");
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchProducts(); }, []);
-
-  const filtered = products.filter((p) =>
+  // Filter logic (using data from hook)
+  const filtered = (data?.products || []).filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category.toLowerCase().includes(search.toLowerCase())
   );
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true); };
+  
   const openEdit = (p: Product) => {
     setEditing(p);
     setForm({ name: p.name, description: p.description, price: String(p.price), category: p.category });
@@ -49,24 +49,41 @@ const Products = () => {
 
   const handleSave = async () => {
     if (!form.name || !form.price) return;
-    setSaving(true);
-    const data = { name: form.name, description: form.description, price: Number(form.price), category: form.category };
+    
+    const productData = { 
+        name: form.name, 
+        description: form.description, 
+        price: Number(form.price), 
+        category: form.category 
+    };
+
+    let res;
     if (editing) {
-      const res = await updateProduct(editing.id, data);
-      toast({ title: res.success ? "Product updated" : "Error", description: res.message, variant: res.success ? "default" : "destructive" });
+      // updateProduct hook use kiya
+      res = await updateProduct(editing._id, productData); 
     } else {
-      const res = await createProduct(data, user?.id || "");
-      toast({ title: res.success ? "Product created" : "Error", description: res.message, variant: res.success ? "default" : "destructive" });
+      // createProduct hook use kiya
+      res = await createProduct(productData, user?._id || ""); 
     }
-    setSaving(false);
-    setDialogOpen(false);
-    fetchProducts();
+
+    if (res.success) {
+      toast({ title: editing ? "Product updated" : "Product created", description: res.message });
+      setDialogOpen(false);
+      refresh(); // Data reload karne ke liye
+    } else {
+      toast({ title: "Error", description: res.message, variant: "destructive" });
+    }
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure?")) return;
     const res = await deleteProduct(id);
-    toast({ title: res.success ? "Product deleted" : "Error", description: res.message, variant: res.success ? "default" : "destructive" });
-    fetchProducts();
+    if (res.success) {
+      toast({ title: "Deleted", description: res.message });
+      refresh();
+    } else {
+      toast({ title: "Error", description: res.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -93,32 +110,43 @@ const Products = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
-            <Card key={p.id} className="flex flex-col">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <Link to={`/products/${p.id}`} className="hover:underline">
+            // Link ko card ke bahar le aayein aur styling ke liye block banayein
+            <Link to={`/products/${p._id}`} key={p._id} className="block no-underline">
+              <Card className="flex flex-col h-full transition-shadow hover:shadow-md cursor-pointer">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-lg leading-tight">{p.name}</CardTitle>
-                  </Link>
-                  <Badge variant="secondary" className="shrink-0 text-[10px]">{p.category}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>
-              </CardContent>
-              <CardFooter className="flex items-center justify-between">
-                <span className="text-xl font-bold">${p.price.toFixed(2)}</span>
-                {isAdmin && (
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Badge variant="secondary" className="shrink-0 text-[10px]">{p.category}</Badge>
                   </div>
-                )}
-              </CardFooter>
-            </Card>
+                </CardHeader>
+                
+                <CardContent className="flex-1">
+                  <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+                </CardContent>
+
+                <CardFooter className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-xl font-bold">${p.price.toFixed(2)}</span>
+                  
+                  {/* Admin buttons mein e.stopPropagation() zaroori hai takki 
+                      delete click karne par detail page na khul jaye */}
+                  {isAdmin && (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.preventDefault(); openEdit(p); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive" 
+                        onClick={(e) => { e.preventDefault(); handleDelete(p._id); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
@@ -150,9 +178,9 @@ const Products = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={creating || updating}>Cancel</Button>
+            <Button onClick={handleSave} disabled={creating || updating}>
+              {(creating || updating) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? "Update" : "Create"}
             </Button>
           </DialogFooter>

@@ -22,7 +22,7 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
-    "baseUrl": ".",
+    /* Path Mapping (Fixed) */
     "paths": {
       "@/*": ["./src/*"]
     }

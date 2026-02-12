@@ -6,6 +6,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  isAuthenticated: boolean; // Extra helper
   isAdmin: boolean;
 }
 
@@ -39,7 +40,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAdmin: user?.role === "admin" }}>
+    <AuthContext.Provider value={{ 
+        user, 
+        token, 
+        login, 
+        logout, 
+        isAuthenticated: !!token,
+        isAdmin: user?.role === "admin" // Aapke updated types ke hisaab se
+    }}>
       {children}
     </AuthContext.Provider>
   );

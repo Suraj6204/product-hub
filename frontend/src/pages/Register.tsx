@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { registerApi } from "@/mock/api";
+// Mock API ki jagah apna naya hook import karein
+import { useRegisterApi } from "@/hooks/useRegisterApi"; 
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,14 +15,17 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"user" | "admin">("user");
-  const [loading, setLoading] = useState(false);
+  
+  // Local loading state delete karke hook se destructure kiya
+  const { registerApi, loading } = useRegisterApi(); 
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const res = await registerApi(name, email, password, role);
-    setLoading(false);
+    
+    // registerApi ab hook se aa raha hai
+    const res = await registerApi(name, email, password, role); 
+    
     if (res.success) {
       toast({ title: "Account created!", description: "You can now log in." });
       navigate("/login");
@@ -63,6 +67,7 @@ const Register = () => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
+            {/* Hook wali loading state use ki */}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Register
             </Button>
