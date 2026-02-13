@@ -9,7 +9,7 @@ services:
     environment:
       - PORT=8000
       - REDIS_URL=redis://redis:6379
-      - MONGO_URI=mongodb+srv://surajbhanrana06_db_user:0tOwWJiw5Z3y89S3@product-hub.tibstt1.mongodb.net/product-hub?retryWrites=true&w=majority
+      - MONGO_URI=mongodb+srv://<username>:<password>@product-hub.tibstt1.mongodb.net/product-hub?retryWrites=true&w=majority
     depends_on:
       - redis
     networks:
