@@ -35,9 +35,14 @@ const Navbar = () => {
               </Button>
               <div className="flex items-center gap-2 ml-2">
                 {/* Fixed: user.name ko user.fullname kiya */}
-                <span className="text-sm text-muted-foreground hidden sm:inline">
+                {/* <span className="text-sm text-muted-foreground hidden sm:inline">
                   {user.fullname}
-                </span>
+                </span> */}
+                <img 
+                src="https://th.bing.com/th/id/OIP.unWLB3of3nas8JaEWBLk5AHaHa?w=171&h=180&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3" 
+                alt="profile" 
+                className="h-9 w-9 rounded-full"
+                />
                 {isAdmin && <Badge variant="default" className="text-[10px] px-1.5 py-0">Admin</Badge>}
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />

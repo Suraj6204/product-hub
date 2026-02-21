@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-// Mock API ki jagah real hook use kiya
 import { useGetAllProducts } from "@/hooks/useGetAllProducts"; 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

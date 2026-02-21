@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 
-const emptyForm = { name: "", description: "", price: "", category: "" };
+const emptyForm = { name: "", description: "", price: "", category: "" , file: null };
 
 const Products = () => {
   const { isAdmin, user } = useAuth();
@@ -33,6 +33,13 @@ const Products = () => {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
 
+  const changeFileHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setForm({ ...form, file });
+    }
+  };
+  
   // Filter logic (using data from hook)
   const filtered = (data?.products || []).filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -43,7 +50,7 @@ const Products = () => {
   
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description, price: String(p.price), category: p.category });
+    setForm({ name: p.name, description: p.description, price: String(p.price), category: p.category, file: null });
     setDialogOpen(true);
   };
 
